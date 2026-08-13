@@ -94,6 +94,14 @@ function StudentPortal() {
           )}
           {scholarships.map(s => (
             <div className="card" key={s.id}>
+              {s.imageUrl && (
+                <img
+                  src={s.imageUrl}
+                  alt={s.title}
+                  style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 7, marginBottom: -2 }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              )}
               <div className="co">{s.company || 'Sponsor'}</div>
               <h3>{s.title}</h3>
               <div className="desc">{s.description}</div>
@@ -101,6 +109,9 @@ function StudentPortal() {
                 <div className="amount">₹{Number(s.price || 0).toLocaleString('en-IN')}<br /><small>award amount</small></div>
                 <button className="btn btn-primary" onClick={() => setOpenScholarship(s)}>Apply Now</button>
               </div>
+              {Number(s.applicationFee) > 0 && (
+                <div className="hint">Application fee: ₹{Number(s.applicationFee).toLocaleString('en-IN')}</div>
+              )}
             </div>
           ))}
         </div>
@@ -155,7 +166,7 @@ function sendConfirmationEmail(app, settings) {
 function ApplyModal({ scholarship, settings, onClose }) {
   const [form, setForm] = useState({
     gmail: '', phone: '', state: '', district: '', city: '', institute: '',
-    aadharNumber: '', aadharName: '', aadharDob: ''
+    aadharLast4: '', aadharName: '', aadharDob: ''
   });
   const [errors, setErrors] = useState({});
   const [stage, setStage] = useState('form'); // form | paying | done
@@ -167,7 +178,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
     const e = {};
     if (!/^.+@gmail\.com$/.test(form.gmail)) e.gmail = 'Please enter a valid Gmail address.';
     if (!/^[0-9]{10}$/.test(form.phone)) e.phone = 'Enter a valid 10-digit phone number.';
-    if (!/^[0-9]{12}$/.test(form.aadharNumber)) e.aadharNumber = 'Aadhaar number must be exactly 12 digits.';
+    if (!/^[0-9]{4}$/.test(form.aadharLast4)) e.aadharLast4 = 'Enter the last 4 digits of your Aadhaar.';
     ['state', 'district', 'city', 'institute', 'aadharName', 'aadharDob'].forEach(k => {
       if (!form[k]) e[k] = 'Required';
     });
@@ -179,15 +190,17 @@ function ApplyModal({ scholarship, settings, onClose }) {
     ev.preventDefault();
     if (!validate()) return;
 
+    const { aadharLast4, ...rest } = form;
     const application = {
       id: 'APP-' + Date.now().toString(36).toUpperCase(),
       scholarshipId: scholarship.id,
       scholarshipTitle: scholarship.title,
       company: scholarship.company,
-      ...form
+      ...rest,
+      aadharNumber: 'XXXX XXXX ' + aadharLast4
     };
 
-    const fee = Number(settings.feeAmount || 0);
+    const fee = Number(scholarship.applicationFee || 0);
     if (fee > 0) {
       setStage('paying');
       setPayMsg('Creating your payment order…');
@@ -263,9 +276,10 @@ function ApplyModal({ scholarship, settings, onClose }) {
 
                 <div className="divider-label">Aadhaar details</div>
                 <div className="form-row">
-                  <label>Aadhaar Number <span className="req">*</span></label>
-                  <input type="text" maxLength={12} value={form.aadharNumber} onChange={e => update('aadharNumber', e.target.value)} />
-                  {errors.aadharNumber && <div className="err">{errors.aadharNumber}</div>}
+                  <label>Aadhaar Number — last 4 digits <span className="req">*</span></label>
+                  <input type="tel" maxLength={4} placeholder="e.g. 8989" value={form.aadharLast4} onChange={e => update('aadharLast4', e.target.value.replace(/\D/g, ''))} />
+                  <div className="hint">We only collect the last 4 digits (shown as XXXX XXXX {form.aadharLast4 || '••••'}).</div>
+                  {errors.aadharLast4 && <div className="err">{errors.aadharLast4}</div>}
                 </div>
                 <div className="form-row">
                   <label>Name (as per Aadhaar) <span className="req">*</span></label>
@@ -287,7 +301,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
         {stage === 'paying' && (
           <div className="pay-box">
             <div className="amt-label">Application fee</div>
-            <div className="amt">₹{Number(settings.feeAmount).toLocaleString('en-IN')}</div>
+            <div className="amt">₹{Number(scholarship.applicationFee).toLocaleString('en-IN')}</div>
             <div className="status-msg">{payMsg}</div>
           </div>
         )}
@@ -433,20 +447,31 @@ function AdminPanelInner() {
 }
 
 function ScholarshipsTab({ scholarships, onChange }) {
-  const [form, setForm] = useState({ title: '', company: '', price: '', deadline: '', description: '' });
+  const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '' });
+  const [saving, setSaving] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.title || !form.company || !form.price) return;
-    await addScholarship({ ...form, price: Number(form.price) });
-    setForm({ title: '', company: '', price: '', deadline: '', description: '' });
-    onChange();
+    setSaving(true);
+    try {
+      await addScholarship({ ...form, price: Number(form.price), applicationFee: Number(form.applicationFee) || 0 });
+      setForm({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '' });
+      onChange();
+    } catch (err) {
+      alert('Could not save this scholarship. Check that Firestore is set up and its rules allow writes. (' + err.message + ')');
+    }
+    setSaving(false);
   };
 
   const remove = async (id) => {
     if (!confirm('Remove this scholarship listing?')) return;
-    await deleteScholarship(id);
-    onChange();
+    try {
+      await deleteScholarship(id);
+      onChange();
+    } catch (err) {
+      alert('Could not remove this scholarship. (' + err.message + ')');
+    }
   };
 
   return (
@@ -459,24 +484,31 @@ function ScholarshipsTab({ scholarships, onChange }) {
             <div className="form-row"><label>Scholarship Title *</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
             <div className="form-row"><label>Company / Sponsor *</label><input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} /></div>
             <div className="form-row"><label>Award Amount (₹) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} /></div>
+            <div className="form-row"><label>Application Fee (₹)</label><input type="number" placeholder="0 = free to apply" value={form.applicationFee} onChange={e => setForm(f => ({ ...f, applicationFee: e.target.value }))} /></div>
             <div className="form-row"><label>Deadline</label><input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} /></div>
             <div className="form-row full"><label>Description</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+            <div className="form-row full">
+              <label>Image URL (optional)</label>
+              <input type="url" placeholder="https://example.com/photo.jpg" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} />
+              <div className="hint">Paste a link to an image (e.g. upload one to postimages.org or imgur.com first, then paste the direct image link here).</div>
+            </div>
           </div>
-          <div className="btn-row"><button className="btn btn-accent" type="submit">Upload Scholarship</button></div>
+          <div className="btn-row"><button className="btn btn-accent" type="submit" disabled={saving}>{saving ? 'Uploading…' : 'Upload Scholarship'}</button></div>
         </form>
       </div>
       <div className="panel">
         <h2>Live listings</h2>
         <div className="scroll-x">
           <table>
-            <thead><tr><th>Title</th><th>Company</th><th>Amount</th><th>Deadline</th><th></th></tr></thead>
+            <thead><tr><th>Title</th><th>Company</th><th>Amount</th><th>Fee</th><th>Deadline</th><th></th></tr></thead>
             <tbody>
-              {scholarships.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)' }}>No scholarships uploaded yet.</td></tr>}
+              {scholarships.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)' }}>No scholarships uploaded yet.</td></tr>}
               {scholarships.map(s => (
                 <tr key={s.id}>
                   <td><strong>{s.title}</strong></td>
                   <td><span className="co-tag">{s.company}</span></td>
                   <td className="price">₹{Number(s.price).toLocaleString('en-IN')}</td>
+                  <td>₹{Number(s.applicationFee || 0).toLocaleString('en-IN')}</td>
                   <td>{s.deadline || '—'}</td>
                   <td><button className="btn btn-danger" onClick={() => remove(s.id)}>Remove</button></td>
                 </tr>
@@ -490,7 +522,9 @@ function ScholarshipsTab({ scholarships, onChange }) {
 }
 
 function maskAadhaar(num) {
-  if (!num || num.length < 4) return num;
+  if (!num) return num;
+  if (num.includes('X')) return num; // already masked at collection time
+  if (num.length < 4) return num;
   return 'XXXX XXXX ' + num.slice(-4);
 }
 
@@ -539,31 +573,26 @@ function SettingsTab({ settings, onChange }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    await saveSettings({ ...form, feeAmount: Number(form.feeAmount) || 0 });
+    await saveSettings(form);
     onChange();
   };
 
   return (
     <>
-      <div className="page-head"><h1>Settings</h1><p>Application fee and email confirmation setup.</p></div>
+      <div className="page-head"><h1>Settings</h1><p>Email confirmation setup. (Application fees are now set per-scholarship, in the Scholarships tab.)</p></div>
       <div className="panel">
-        <h2>Application Fee</h2>
+        <h2>Email Confirmation (EmailJS)</h2>
+        <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 14 }}>
+          Free account at emailjs.com → connect Gmail → create a template → paste the 3 values below.
+        </div>
         <form onSubmit={submit}>
-          <div className="form-grid">
-            <div className="form-row"><label>Fee Amount (₹)</label><input type="number" value={form.feeAmount} onChange={e => setForm(f => ({ ...f, feeAmount: e.target.value }))} placeholder="0 = free to apply" /></div>
-          </div>
-          <div style={{ marginTop: 14, fontSize: 12.5, color: 'var(--muted)' }}>
-            The ZapUPI key itself is set separately as a server environment variable (ZAPUPI_KEY on Vercel) — it never lives in this form or in the code, so it stays private even though this repo is public.
-          </div>
-
-          <h2 style={{ marginTop: 26 }}>Email Confirmation (EmailJS)</h2>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 14 }}>
-            Free account at emailjs.com → connect Gmail → create a template → paste the 3 values below.
-          </div>
           <div className="form-grid">
             <div className="form-row"><label>EmailJS Public Key</label><input value={form.emailjsPublicKey} onChange={e => setForm(f => ({ ...f, emailjsPublicKey: e.target.value }))} /></div>
             <div className="form-row"><label>EmailJS Service ID</label><input value={form.emailjsServiceId} onChange={e => setForm(f => ({ ...f, emailjsServiceId: e.target.value }))} /></div>
             <div className="form-row full"><label>EmailJS Template ID</label><input value={form.emailjsTemplateId} onChange={e => setForm(f => ({ ...f, emailjsTemplateId: e.target.value }))} /></div>
+          </div>
+          <div style={{ marginTop: 14, fontSize: 12.5, color: 'var(--muted)' }}>
+            The ZapUPI key itself is set separately as a server environment variable (ZAPUPI_KEY on Vercel) — it never lives in this form or in the code, so it stays private even though this repo is public.
           </div>
           <div className="btn-row"><button className="btn btn-accent" type="submit">Save Settings</button></div>
         </form>
