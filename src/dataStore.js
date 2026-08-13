@@ -1,6 +1,6 @@
 import { db } from './firebase';
 import {
-  collection, doc, getDocs, getDoc, addDoc, deleteDoc, setDoc,
+  collection, doc, getDocs, getDoc, addDoc, deleteDoc, setDoc, updateDoc,
   query, orderBy
 } from 'firebase/firestore';
 
@@ -30,10 +30,15 @@ export async function getApplications() {
 }
 
 export async function addApplication(application) {
-  await addDoc(collection(db, 'applications'), {
+  const ref = await addDoc(collection(db, 'applications'), {
     ...application,
     submittedAt: Date.now()
   });
+  return ref.id;
+}
+
+export async function updateApplicationStatus(id, paymentStatus) {
+  await updateDoc(doc(db, 'applications', id), { paymentStatus });
 }
 
 // ---------- Settings (single document) ----------
