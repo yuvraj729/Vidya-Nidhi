@@ -314,6 +314,61 @@ function ApplyModal({ scholarship, settings, onClose }) {
    ADMIN PANEL — reached via the "Admin Panel" link in the footer (#admin)
    ============================================================ */
 function AdminPanel() {
+  const [authed, setAuthed] = useState(sessionStorage.getItem('adminAuthed') === 'true');
+  if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
+  return <AdminPanelInner />;
+}
+
+function AdminLogin({ onSuccess }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setChecking(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        sessionStorage.setItem('adminAuthed', 'true');
+        onSuccess();
+      } else {
+        setError(data.message || 'Incorrect password.');
+      }
+    } catch (err) {
+      setError('Could not reach the server. Please try again.');
+    }
+    setChecking(false);
+  };
+
+  return (
+    <div className="admin-shell" style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <div className="panel" style={{ maxWidth: 360, width: '100%' }}>
+        <h2>Admin Login</h2>
+        <form onSubmit={submit}>
+          <div className="form-row">
+            <label>Password</label>
+            <input type="password" autoFocus value={password} onChange={e => setPassword(e.target.value)} />
+            {error && <div className="err">{error}</div>}
+          </div>
+          <div className="btn-row">
+            <button className="btn btn-accent" type="submit" disabled={checking}>
+              {checking ? 'Checking…' : 'Log In'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AdminPanelInner() {
   const [tab, setTab] = useState('dashboard');
   const [scholarships, setScholarships] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -346,6 +401,7 @@ function AdminPanel() {
           </div>
         ))}
         <div className="navitem" onClick={() => { window.location.hash = ''; }}>← Back to site</div>
+        <div className="navitem" onClick={() => { sessionStorage.removeItem('adminAuthed'); window.location.reload(); }}>Log out</div>
       </aside>
 
       <div className="admin-main">
@@ -433,6 +489,11 @@ function ScholarshipsTab({ scholarships, onChange }) {
   );
 }
 
+function maskAadhaar(num) {
+  if (!num || num.length < 4) return num;
+  return 'XXXX XXXX ' + num.slice(-4);
+}
+
 function ApplicationsTab({ applications }) {
   return (
     <>
@@ -459,7 +520,7 @@ function ApplicationsTab({ applications }) {
                   <td>{a.district}</td>
                   <td>{a.city}</td>
                   <td>{a.institute}</td>
-                  <td className="mono">{a.aadharNumber}</td>
+                  <td className="mono">{maskAadhaar(a.aadharNumber)}</td>
                   <td>{a.aadharName}</td>
                   <td>{a.aadharDob}</td>
                 </tr>
