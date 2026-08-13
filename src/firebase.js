@@ -1,17 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// 1. Go to https://console.firebase.google.com -> Create a project (free).
-// 2. Inside the project: Build -> Firestore Database -> Create database (start in test mode for now).
-// 3. Project settings (gear icon) -> scroll to "Your apps" -> Add app -> Web (</>) -> register it.
-// 4. Copy the firebaseConfig object it gives you and paste the values below.
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID"
+  apiKey: "AIzaSyDwiMdQB1UO3qTECl-4hxEPCYqKBg9KoBw",
+  authDomain: "vidhya-nidhi.firebaseapp.com",
+  projectId: "vidhya-nidhi",
+  storageBucket: "vidhya-nidhi.firebasestorage.app",
+  messagingSenderId: "232937311476",
+  appId: "1:232937311476:web:e496fe1a238b5f6075a2a1"
 };
 
 const app = initializeApp(firebaseConfig);
