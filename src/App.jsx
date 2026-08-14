@@ -164,8 +164,8 @@ function sendConfirmationEmail(app, settings) {
 }
 
 function ApplyModal({ scholarship, settings, onClose }) {
-  const [form, setForm] = useState({
-    gmail: '', phone: '', state: '', district: '', city: '', institute: '', classYear: '',
+const [form, setForm] = useState({
+    gmail: '', phone: '', state: '', district: '', city: '', institute: '', classYear: scholarship.eligibleClass || '',
     aadharLast4: '', aadharName: '', aadharDob: ''
   });
   const [errors, setErrors] = useState({});
