@@ -532,19 +532,21 @@ function ScholarshipsTab({ scholarships, onChange }) {
         <h2>Live listings</h2>
         <div className="scroll-x">
           <table>
-            <thead><tr><th>Title</th><th>Company</th><th>Amount</th><th>Fee</th><th>Deadline</th><th></th></tr></thead>
+            <thead><tr><th>Title</th><th>Company</th><th>Amount</th><th>Fee</th><th>Class</th><th>Deadline</th><th></th></tr></thead>
             <tbody>
-              {scholarships.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)' }}>No scholarships uploaded yet.</td></tr>}
+              {scholarships.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)' }}>No scholarships uploaded yet.</td></tr>}
               {scholarships.map(s => (
                 <tr key={s.id}>
                   <td><strong>{s.title}</strong></td>
                   <td><span className="co-tag">{s.company}</span></td>
                   <td className="price">₹{Number(s.price).toLocaleString('en-IN')}</td>
                   <td>₹{Number(s.applicationFee || 0).toLocaleString('en-IN')}</td>
+                  <td>{s.eligibleClass || 'Any'}</td>
                   <td>{s.deadline || '—'}</td>
                   <td><button className="btn btn-danger" onClick={() => remove(s.id)}>Remove</button></td>
                 </tr>
               ))}
+            </tbody>
             </tbody>
           </table>
         </div>
