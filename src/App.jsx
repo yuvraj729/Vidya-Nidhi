@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import emailjs from '@emailjs/browser';
 import {
   getScholarships, addScholarship, deleteScholarship,
-  getApplications, addApplication, getSettings, saveSettings
+  getApplications, addApplication, updateApplicationStatus, getSettings, saveSettings
 } from './dataStore';
 
 function useHashView() {
@@ -41,26 +41,26 @@ function StudentPortal() {
 
   // Handle returning from ZapUPI's payment page (success/failed/timeout all land here).
   useEffect(() => {
-    if (window.location.hash !== '#payment-return') return;
-    const raw = sessionStorage.getItem('pendingApplication');
+    if (!window.location.hash.startsWith('#payment-return')) return;
+    const docId = sessionStorage.getItem('pendingApplicationId');
     const orderId = sessionStorage.getItem('pendingOrderId');
-    if (!raw || !orderId) return;
+    const raw = sessionStorage.getItem('pendingApplication');
+    if (!docId || !orderId) return;
     (async () => {
-      const app = JSON.parse(raw);
       const status = await checkPaymentStatus(orderId);
+      const parsedApp = raw ? JSON.parse(raw) : null;
       if (status === 'Success') {
-        await addApplication(app);
-        sendConfirmationEmail(app, settings);
-        sessionStorage.removeItem('pendingApplication');
-        sessionStorage.removeItem('pendingOrderId');
-        window.location.hash = '';
-        alert('Payment confirmed. Scholarship successfully applied. Please wait for the scholarship process.');
+        await updateApplicationStatus(docId, 'paid');
+        if (parsedApp) sendConfirmationEmail(parsedApp, settings);
+        alert('Payment confirmed. Scholarship successfully applied. Please wait for the scholarship process.\n\nYour reference ID: ' + (parsedApp ? parsedApp.id : docId));
       } else {
-        sessionStorage.removeItem('pendingApplication');
-        sessionStorage.removeItem('pendingOrderId');
-        window.location.hash = '';
-        alert('Payment was not completed (' + status + '). Please apply again.');
+        await updateApplicationStatus(docId, 'failed');
+        alert('Payment was not completed (' + status + '). Your details were saved, but you may want to apply again once you are ready to pay.');
       }
+      sessionStorage.removeItem('pendingApplication');
+      sessionStorage.removeItem('pendingApplicationId');
+      sessionStorage.removeItem('pendingOrderId');
+      window.location.hash = '';
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
@@ -159,18 +159,19 @@ function sendConfirmationEmail(app, settings) {
     applicant_name: app.aadharName,
     scholarship_title: app.scholarshipTitle,
     reference_id: app.id,
-    message: 'Scholarship successfully applied. Please wait for the scholarship process.'
+    message: 'Scholarship successfully applied. Please wait for the scholarship process. Your reference ID is ' + app.id + '.'
   }).catch(() => {});
 }
 
 function ApplyModal({ scholarship, settings, onClose }) {
   const [form, setForm] = useState({
-    gmail: '', phone: '', state: '', district: '', city: '', institute: '',
+    gmail: '', phone: '', state: '', district: '', city: '', institute: '', classYear: '',
     aadharLast4: '', aadharName: '', aadharDob: ''
   });
   const [errors, setErrors] = useState({});
   const [stage, setStage] = useState('form'); // form | paying | done
   const [payMsg, setPayMsg] = useState('');
+  const [refId, setRefId] = useState('');
 
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -179,7 +180,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
     if (!/^.+@gmail\.com$/.test(form.gmail)) e.gmail = 'Please enter a valid Gmail address.';
     if (!/^[0-9]{10}$/.test(form.phone)) e.phone = 'Enter a valid 10-digit phone number.';
     if (!/^[0-9]{4}$/.test(form.aadharLast4)) e.aadharLast4 = 'Enter the last 4 digits of your Aadhaar.';
-    ['state', 'district', 'city', 'institute', 'aadharName', 'aadharDob'].forEach(k => {
+    ['state', 'district', 'city', 'institute', 'classYear', 'aadharName', 'aadharDob'].forEach(k => {
       if (!form[k]) e[k] = 'Required';
     });
     setErrors(e);
@@ -201,11 +202,14 @@ function ApplyModal({ scholarship, settings, onClose }) {
     };
 
     const fee = Number(scholarship.applicationFee || 0);
+
     if (fee > 0) {
+      const docId = await addApplication({ ...application, paymentStatus: 'pending' });
       setStage('paying');
       setPayMsg('Creating your payment order…');
       const orderId = 'ORD' + Date.now();
       sessionStorage.setItem('pendingApplication', JSON.stringify(application));
+      sessionStorage.setItem('pendingApplicationId', docId);
       sessionStorage.setItem('pendingOrderId', orderId);
       try {
         const res = await fetch('/api/zapupi-create-order', {
@@ -217,14 +221,15 @@ function ApplyModal({ scholarship, settings, onClose }) {
         if (data.status === 'success' && data.payment_url) {
           window.location.href = data.payment_url; // same-tab redirect
         } else {
-          setPayMsg('Could not start payment: ' + (data.message || 'unknown error'));
+          setPayMsg('Could not start payment: ' + (data.message || 'unknown error') + '. Your details are saved — you can try paying again by re-applying.');
         }
       } catch (err) {
-        setPayMsg('Could not reach the payment server. Please try again.');
+        setPayMsg('Could not reach the payment server. Your details are saved — you can try again shortly.');
       }
     } else {
-      await addApplication(application);
+      const docId = await addApplication({ ...application, paymentStatus: 'not_required' });
       sendConfirmationEmail(application, settings);
+      setRefId(application.id);
       setStage('done');
     }
   };
@@ -273,6 +278,19 @@ function ApplyModal({ scholarship, settings, onClose }) {
                   <label>School / College Name <span className="req">*</span></label>
                   <input type="text" value={form.institute} onChange={e => update('institute', e.target.value)} />
                 </div>
+                <div className="form-row">
+                  <label>Class / Year <span className="req">*</span></label>
+                  <select value={form.classYear} onChange={e => update('classYear', e.target.value)}>
+                    <option value="">Select…</option>
+                    <option value="8th">8th</option>
+                    <option value="9th">9th</option>
+                    <option value="10th">10th</option>
+                    <option value="11th">11th</option>
+                    <option value="12th">12th</option>
+                    <option value="College - 1st Year">College - 1st Year</option>
+                  </select>
+                  {errors.classYear && <div className="err">{errors.classYear}</div>}
+                </div>
 
                 <div className="divider-label">Aadhaar details</div>
                 <div className="form-row">
@@ -313,6 +331,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
               <h3>Application received</h3>
               <p>Scholarship successfully applied. Please wait for the scholarship process.</p>
               <p>A confirmation has been sent to your Gmail.</p>
+              <div className="refno">Reference ID: {refId}</div>
             </div>
             <div className="modal-foot" style={{ justifyContent: 'center' }}>
               <button className="btn btn-primary" onClick={onClose}>Done</button>
@@ -528,6 +547,13 @@ function maskAadhaar(num) {
   return 'XXXX XXXX ' + num.slice(-4);
 }
 
+function paymentBadge(status) {
+  if (status === 'paid') return <span style={{ color: 'var(--green)', fontWeight: 600 }}>Paid</span>;
+  if (status === 'pending') return <span style={{ color: 'var(--saffron)', fontWeight: 600 }}>Pending</span>;
+  if (status === 'failed') return <span style={{ color: 'var(--red)', fontWeight: 600 }}>Failed</span>;
+  return <span style={{ color: 'var(--muted)' }}>—</span>;
+}
+
 function ApplicationsTab({ applications }) {
   return (
     <>
@@ -537,16 +563,17 @@ function ApplicationsTab({ applications }) {
           <table>
             <thead>
               <tr>
-                <th>Ref</th><th>Scholarship</th><th>Gmail</th><th>Phone</th><th>State</th>
-                <th>District</th><th>City</th><th>School/College</th><th>Aadhaar No.</th>
+                <th>Ref</th><th>Payment</th><th>Scholarship</th><th>Gmail</th><th>Phone</th><th>State</th>
+                <th>District</th><th>City</th><th>School/College</th><th>Class/Year</th><th>Aadhaar No.</th>
                 <th>Aadhaar Name</th><th>Aadhaar DOB</th>
               </tr>
             </thead>
             <tbody>
-              {applications.length === 0 && <tr><td colSpan={11} style={{ textAlign: 'center', color: 'var(--muted)' }}>No applications yet.</td></tr>}
+              {applications.length === 0 && <tr><td colSpan={13} style={{ textAlign: 'center', color: 'var(--muted)' }}>No applications yet.</td></tr>}
               {applications.map(a => (
                 <tr key={a.id}>
                   <td><span className="refid">{a.id}</span></td>
+                  <td>{paymentBadge(a.paymentStatus)}</td>
                   <td>{a.scholarshipTitle}</td>
                   <td>{a.gmail}</td>
                   <td>{a.phone}</td>
@@ -554,6 +581,7 @@ function ApplicationsTab({ applications }) {
                   <td>{a.district}</td>
                   <td>{a.city}</td>
                   <td>{a.institute}</td>
+                  <td>{a.classYear}</td>
                   <td className="mono">{maskAadhaar(a.aadharNumber)}</td>
                   <td>{a.aadharName}</td>
                   <td>{a.aadharDob}</td>
