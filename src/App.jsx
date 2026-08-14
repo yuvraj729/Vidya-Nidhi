@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import emailjs from '@emailjs/browser';
+import logo from '../logo.png';
 import {
   getScholarships, addScholarship, deleteScholarship,
   getApplications, addApplication, updateApplicationStatus, getSettings, saveSettings
@@ -69,7 +70,7 @@ function StudentPortal() {
     <>
       <header className="top">
         <div className="brand">
-          <div className="mark">VN</div>
+          <img src={logo} alt="Vidya Nidhi Logo" className="brand-logo" />
           <div className="brand-text">
             <div className="name">Vidya Nidhi</div>
             <div className="tag">Scholarship Portal</div>
@@ -421,7 +422,7 @@ function AdminPanelInner() {
     <div className="admin-shell">
       <aside className="admin-side">
         <div className="brand" style={{ marginBottom: 32 }}>
-          <div className="mark">VN</div>
+          <img src={logo} alt="Vidya Nidhi Logo" className="brand-logo" />
           <div className="brand-text">
             <div className="name">Vidya Nidhi</div>
             <div className="tag">Admin Panel</div>
