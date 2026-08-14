@@ -24,7 +24,10 @@ header.top{
   display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:20;border-bottom:3px solid var(--saffron);
 }
-.brand{display:flex;align-items:center;gap:10px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-logo{
+  width:36px;height:36px;object-fit:contain;border-radius:50%;background:#fff;padding:2px;display:block;
+}
 .brand .mark{
   width:34px;height:34px;border-radius:50%;background:var(--saffron);color:var(--navy-deep);
   display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:16px;
