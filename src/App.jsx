@@ -164,7 +164,7 @@ function sendConfirmationEmail(app, settings) {
 }
 
 function ApplyModal({ scholarship, settings, onClose }) {
-const [form, setForm] = useState({
+  const [form, setForm] = useState({
     gmail: '', phone: '', state: '', district: '', city: '', institute: '', classYear: scholarship.eligibleClass || '',
     aadharLast4: '', aadharName: '', aadharDob: ''
   });
@@ -547,7 +547,6 @@ function ScholarshipsTab({ scholarships, onChange }) {
                   <td><button className="btn btn-danger" onClick={() => remove(s.id)}>Remove</button></td>
                 </tr>
               ))}
-            </tbody>
             </tbody>
           </table>
         </div>
