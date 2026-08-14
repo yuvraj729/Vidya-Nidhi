@@ -466,7 +466,7 @@ function AdminPanelInner() {
 }
 
 function ScholarshipsTab({ scholarships, onChange }) {
-  const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '' });
+  const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '' });
   const [saving, setSaving] = useState(false);
 
   const submit = async (e) => {
@@ -475,7 +475,7 @@ function ScholarshipsTab({ scholarships, onChange }) {
     setSaving(true);
     try {
       await addScholarship({ ...form, price: Number(form.price), applicationFee: Number(form.applicationFee) || 0 });
-      setForm({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '' });
+      setForm({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '' });
       onChange();
     } catch (err) {
       alert('Could not save this scholarship. Check that Firestore is set up and its rules allow writes. (' + err.message + ')');
@@ -504,6 +504,19 @@ function ScholarshipsTab({ scholarships, onChange }) {
             <div className="form-row"><label>Company / Sponsor *</label><input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} /></div>
             <div className="form-row"><label>Award Amount (₹) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} /></div>
             <div className="form-row"><label>Application Fee (₹)</label><input type="number" placeholder="0 = free to apply" value={form.applicationFee} onChange={e => setForm(f => ({ ...f, applicationFee: e.target.value }))} /></div>
+            <div className="form-row">
+              <label>Eligible Class</label>
+              <select value={form.eligibleClass} onChange={e => setForm(f => ({ ...f, eligibleClass: e.target.value }))}>
+                <option value="">Any class (open to everyone)</option>
+                <option value="8th">8th</option>
+                <option value="9th">9th</option>
+                <option value="10th">10th</option>
+                <option value="11th">11th</option>
+                <option value="12th">12th</option>
+                <option value="College - 1st Year">College - 1st Year</option>
+              </select>
+              <div className="hint">If set, applicants will have this class auto-selected and locked when they apply.</div>
+            </div>
             <div className="form-row"><label>Deadline</label><input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} /></div>
             <div className="form-row full"><label>Description</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="form-row full">
