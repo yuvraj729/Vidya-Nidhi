@@ -469,6 +469,30 @@ function AdminPanelInner() {
 function ScholarshipsTab({ scholarships, onChange }) {
   const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '' });
   const [saving, setSaving] = useState(false);
+  const [imgProcessing, setImgProcessing] = useState(false);
+
+  const handleImageFile = (file) => {
+    if (!file) return;
+    setImgProcessing(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 800;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        setForm(f => ({ ...f, imageUrl: compressed }));
+        setImgProcessing(false);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -521,12 +545,18 @@ function ScholarshipsTab({ scholarships, onChange }) {
             <div className="form-row"><label>Deadline</label><input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} /></div>
             <div className="form-row full"><label>Description</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="form-row full">
-              <label>Image URL (optional)</label>
-              <input type="url" placeholder="https://example.com/photo.jpg" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} />
-              <div className="hint">Paste a link to an image (e.g. upload one to postimages.org or imgur.com first, then paste the direct image link here).</div>
+              <label>Scholarship Image (optional)</label>
+              <input type="file" accept="image/*" onChange={e => handleImageFile(e.target.files[0])} />
+              {imgProcessing && <div className="hint">Processing image…</div>}
+              {form.imageUrl && !imgProcessing && (
+                <div style={{ marginTop: 10 }}>
+                  <img src={form.imageUrl} alt="Preview" style={{ width: 160, height: 100, objectFit: 'cover', borderRadius: 7, border: '1px solid var(--line)' }} />
+                  <button type="button" className="btn btn-ghost" style={{ marginLeft: 10 }} onClick={() => setForm(f => ({ ...f, imageUrl: '' }))}>Remove</button>
+                </div>
+              )}
             </div>
           </div>
-          <div className="btn-row"><button className="btn btn-accent" type="submit" disabled={saving}>{saving ? 'Uploading…' : 'Upload Scholarship'}</button></div>
+          <div className="btn-row"><button className="btn btn-accent" type="submit" disabled={saving || imgProcessing}>{saving ? 'Uploading…' : imgProcessing ? 'Processing image…' : 'Upload Scholarship'}</button></div>
         </form>
       </div>
       <div className="panel">
