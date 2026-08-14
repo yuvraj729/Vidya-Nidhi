@@ -280,7 +280,7 @@ const [form, setForm] = useState({
                 </div>
                 <div className="form-row">
                   <label>Class / Year <span className="req">*</span></label>
-                  <select value={form.classYear} onChange={e => update('classYear', e.target.value)}>
+                  <select value={form.classYear} disabled={!!scholarship.eligibleClass} onChange={e => update('classYear', e.target.value)}>
                     <option value="">Select…</option>
                     <option value="8th">8th</option>
                     <option value="9th">9th</option>
@@ -289,6 +289,7 @@ const [form, setForm] = useState({
                     <option value="12th">12th</option>
                     <option value="College - 1st Year">College - 1st Year</option>
                   </select>
+                  {scholarship.eligibleClass && <div className="hint">This scholarship is only open to {scholarship.eligibleClass} students.</div>}
                   {errors.classYear && <div className="err">{errors.classYear}</div>}
                 </div>
 
