@@ -343,7 +343,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
         setPayMsg('Could not reach the payment server. Your details are saved — you can try again shortly.');
       }
     } else {
-      const docId = await addApplication({ ...application, paymentStatus: 'not_required' });
+      await addApplication({ ...application, paymentStatus: 'not_required' });
       sendConfirmationEmail(application, settings);
       setRefId(application.id);
       setStage('done');
