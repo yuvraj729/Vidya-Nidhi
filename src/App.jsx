@@ -40,7 +40,7 @@ function StudentPortal() {
     })();
   }, []);
 
-  // Handle returning from ZapUPI's payment page (success/failed/timeout all land here).
+  // Handle returning from ZapUPI payment gateway
   useEffect(() => {
     if (!window.location.hash.startsWith('#payment-return')) return;
     const docId = sessionStorage.getItem('pendingApplicationId');
@@ -66,6 +66,69 @@ function StudentPortal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
+  // Inject JSON-LD FAQ Schema into document.head
+  useEffect(() => {
+    const faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Vidya Nidhi Scholarship Portal?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is an online portal where students can discover scholarship opportunities and review application information."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who can apply for scholarships?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Eligibility depends on the individual scholarship. Students should check the eligibility information before applying."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I apply?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Select an available scholarship, click Apply Now, complete the application form and follow the payment process if an application fee is required."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is every scholarship free to apply?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Not necessarily. Some scholarships may have an application fee specified by the listing sponsor."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does applying guarantee a scholarship?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Applications are reviewed according to the scholarship or sponsor's eligibility and selection process."
+          }
+        }
+      ]
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'faq-schema-jsonld';
+    script.innerHTML = JSON.stringify(faqSchema);
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.getElementById('faq-schema-jsonld');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
+
   return (
     <>
       <header className="top">
@@ -79,43 +142,95 @@ function StudentPortal() {
       </header>
 
       <div className="hero">
-        <div className="eyebrow">Applications open</div>
-        <h1>Find a scholarship worth applying for.</h1>
-        <p>Browse scholarships listed by our partner companies, check the award amount, and submit your details in one form.</p>
+        <div className="eyebrow" style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Find Scholarships for Students in India</div>
+        <h1>Vidya Nidhi Scholarship Portal</h1>
+        <p>Discover scholarship opportunities for students in India. Browse available scholarships, check eligibility, award amounts and application details, then apply online.</p>
       </div>
 
       <main>
-        <div className="section-head">
-          <h2>Open Scholarships</h2>
-          <div className="count">{loading ? 'Loading…' : `${scholarships.length} scholarships`}</div>
-        </div>
-        <div className="grid">
-          {!loading && scholarships.length === 0 && (
-            <div className="empty">No scholarships are open right now. Please check back soon.</div>
-          )}
-          {scholarships.map(s => (
-            <div className="card" key={s.id}>
-              {s.imageUrl && (
-                <img
-                  src={s.imageUrl}
-                  alt={s.title}
-                  style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 7, marginBottom: -2 }}
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              )}
-              <div className="co">{s.company || 'Sponsor'}</div>
-              <h3>{s.title}</h3>
-              <div className="desc">{s.description}</div>
-              <div className="meta">
-                <div className="amount">₹{Number(s.price || 0).toLocaleString('en-IN')}<br /><small>award amount</small></div>
-                <button className="btn btn-primary" onClick={() => setOpenScholarship(s)}>Apply Now</button>
-              </div>
-              {Number(s.applicationFee) > 0 && (
-                <div className="hint">Application fee: ₹{Number(s.applicationFee).toLocaleString('en-IN')}</div>
-              )}
-            </div>
-          ))}
-        </div>
+        <section aria-labelledby="scholarships-heading">
+          <div className="section-head">
+            <h2 id="scholarships-heading">Latest Scholarships for Students</h2>
+            <div className="count">{loading ? 'Loading…' : `${scholarships.length} scholarships`}</div>
+          </div>
+          
+          <p style={{ textAlign: 'center', margin: '0 auto 2.5rem auto', maxWidth: '650px', opacity: 0.8, lineHeight: '1.6' }}>
+            Browse our latest education scholarships. Review eligibility requirements, award amounts, and application information below.
+          </p>
+
+          <div className="grid">
+            {!loading && scholarships.length === 0 && (
+              <div className="empty">No scholarships are open right now. Please check back soon.</div>
+            )}
+            {scholarships.map(s => (
+              <article className="card" key={s.id}>
+                {s.imageUrl && (
+                  <img
+                    src={s.imageUrl}
+                    alt={`${s.title} scholarship by ${s.company || 'sponsor'}`}
+                    style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 7, marginBottom: -2 }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                )}
+                <div className="co">{s.company || 'Sponsor'}</div>
+                <h3>{s.title}</h3>
+                <div className="desc">{s.description}</div>
+                <div className="meta">
+                  <div className="amount">₹{Number(s.price || 0).toLocaleString('en-IN')}<br /><small>award amount</small></div>
+                  <button className="btn btn-primary" onClick={() => setOpenScholarship(s)}>Apply Now</button>
+                </div>
+                {Number(s.applicationFee) > 0 && (
+                  <div className="hint">Application fee: ₹{Number(s.applicationFee).toLocaleString('en-IN')}</div>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="how-to-apply-heading" style={{ padding: '4rem 1rem 2rem', maxWidth: '800px', margin: '0 auto', lineHeight: '1.6' }}>
+          <h2 id="how-to-apply-heading" style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.75rem' }}>How to Apply for a Scholarship</h2>
+          <ol style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--text)' }}>
+            <li><strong>Browse Scholarships:</strong> Review the latest student scholarships listed on our portal.</li>
+            <li><strong>Check Eligibility:</strong> Read through the educational and class requirements to ensure you qualify.</li>
+            <li><strong>Submit Your Application:</strong> Click "Apply Now" to securely submit your details and application information.</li>
+            <li><strong>Complete Payment if Required:</strong> If the sponsor specifies an application fee, complete the secure online payment to finalize your submission.</li>
+          </ol>
+        </section>
+
+        <section aria-labelledby="why-us-heading" style={{ padding: '2rem 1rem', maxWidth: '800px', margin: '0 auto', lineHeight: '1.6' }}>
+          <h2 id="why-us-heading" style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.75rem' }}>Why Use Vidya Nidhi Scholarship Portal?</h2>
+          <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--text)' }}>
+            <li><strong>Easy scholarship discovery:</strong> Find education scholarships in one central place.</li>
+            <li><strong>Clear eligibility information:</strong> Instantly see award amounts and class requirements.</li>
+            <li><strong>Online application process:</strong> Submit your details securely and rapidly.</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="faq-heading" style={{ padding: '2rem 1rem 4rem', maxWidth: '800px', margin: '0 auto', lineHeight: '1.6' }}>
+          <h2 id="faq-heading" style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '1.75rem' }}>Frequently Asked Questions</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <article>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.4rem' }}>What is Vidya Nidhi Scholarship Portal?</h3>
+              <p style={{ opacity: 0.9 }}>It is an online portal where students can discover scholarship opportunities and review application information.</p>
+            </article>
+            <article>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.4rem' }}>Who can apply for scholarships?</h3>
+              <p style={{ opacity: 0.9 }}>Eligibility depends on the individual scholarship. Students should check the eligibility information before applying.</p>
+            </article>
+            <article>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.4rem' }}>How do I apply?</h3>
+              <p style={{ opacity: 0.9 }}>Select an available scholarship, click Apply Now, complete the application form and follow the payment process if an application fee is required.</p>
+            </article>
+            <article>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.4rem' }}>Is every scholarship free to apply?</h3>
+              <p style={{ opacity: 0.9 }}>Not necessarily. Some scholarships may have an application fee specified by the listing sponsor.</p>
+            </article>
+            <article>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.4rem' }}>Does applying guarantee a scholarship?</h3>
+              <p style={{ opacity: 0.9 }}>No. Applications are reviewed according to the scholarship or sponsor's eligibility and selection process.</p>
+            </article>
+          </div>
+        </section>
       </main>
 
       <footer>
@@ -220,7 +335,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
         });
         const data = await res.json();
         if (data.status === 'success' && data.payment_url) {
-          window.location.href = data.payment_url; // same-tab redirect
+          window.location.href = data.payment_url;
         } else {
           setPayMsg('Could not start payment: ' + (data.message || 'unknown error') + '. Your details are saved — you can try paying again by re-applying.');
         }
@@ -297,7 +412,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
                 <div className="divider-label">Aadhaar details</div>
                 <div className="form-row">
                   <label>Aadhaar Number — last 4 digits <span className="req">*</span></label>
-                  <input type="tel" maxLength={4} placeholder="e.g. 8989" value={form.aadharLast4} onChange={e => update('aadharLast4', e.target.value.replace(/\D/g, ''))} />
+                  <input type="tel" maxLength={4} placeholder="e.g. 1234" value={form.aadharLast4} onChange={e => update('aadharLast4', e.target.value.replace(/\D/g, ''))} />
                   <div className="hint">We only collect the last 4 digits (shown as XXXX XXXX {form.aadharLast4 || '••••'}).</div>
                   {errors.aadharLast4 && <div className="err">{errors.aadharLast4}</div>}
                 </div>
@@ -346,7 +461,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
 }
 
 /* ============================================================
-   ADMIN PANEL — reached via the "Admin Panel" link in the footer (#admin)
+   ADMIN PANEL
    ============================================================ */
 function AdminPanel() {
   const [authed, setAuthed] = useState(sessionStorage.getItem('adminAuthed') === 'true');
@@ -588,7 +703,7 @@ function ScholarshipsTab({ scholarships, onChange }) {
 
 function maskAadhaar(num) {
   if (!num) return num;
-  if (num.includes('X')) return num; // already masked at collection time
+  if (num.includes('X')) return num;
   if (num.length < 4) return num;
   return 'XXXX XXXX ' + num.slice(-4);
 }
