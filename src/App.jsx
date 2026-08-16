@@ -644,32 +644,6 @@ function AdminPanelInner() {
 }
 
 function ScholarshipsTab({ scholarships, onChange }) {
-  const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' });
-  const [saving, setSaving] = useState(false);
-  const [imgProcessing, setImgProcessing] = useState(false);
-
-  const handleImageFile = (file) => {
-    if (!file) return;
-    setImgProcessing(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxWidth = 800;
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        setForm(f => ({ ...f, imageUrl: compressed }));
-        setImgProcessing(false);
-      };
-      img.src = e.target.result;
-    };
-
-function ScholarshipsTab({ scholarships, onChange }) {
   const emptyForm = { title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' };
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
