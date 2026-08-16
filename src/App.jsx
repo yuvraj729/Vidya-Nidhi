@@ -728,6 +728,115 @@ function ScholarshipsTab({ scholarships, onChange }) {
                 <option value="Boy">Boy only</option>
                 <option value="Girl">Girl only</option>
               </select>
+function ScholarshipsTab({ scholarships, onChange }) {
+  const emptyForm = { title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' };
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [imgProcessing, setImgProcessing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  const startEdit = (s) => {
+    setEditingId(s.id);
+    setForm({
+      title: s.title || '', company: s.company || '', price: String(s.price ?? ''),
+      applicationFee: String(s.applicationFee ?? ''), deadline: s.deadline || '',
+      description: s.description || '', imageUrl: s.imageUrl || '',
+      eligibleClass: s.eligibleClass || '', eligibleGender: s.eligibleGender || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const handleImageFile = (file) => {
+    if (!file) return;
+    setImgProcessing(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 800;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        setForm(f => ({ ...f, imageUrl: compressed }));
+        setImgProcessing(false);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.title || !form.company || !form.price) return;
+    setSaving(true);
+    try {
+      const payload = { ...form, price: Number(form.price), applicationFee: Number(form.applicationFee) || 0 };
+      if (editingId) {
+        await updateScholarship(editingId, payload);
+      } else {
+        await addScholarship(payload);
+      }
+      setForm(emptyForm);
+      setEditingId(null);
+      onChange();
+    } catch (err) {
+      alert('Could not save this scholarship. Check that Firestore is set up and its rules allow writes. (' + err.message + ')');
+    }
+    setSaving(false);
+  };
+
+  const remove = async (id) => {
+    if (!confirm('Remove this scholarship listing?')) return;
+    try {
+      await deleteScholarship(id);
+      onChange();
+    } catch (err) {
+      alert('Could not remove this scholarship. (' + err.message + ')');
+    }
+  };
+
+  return (
+    <>
+      <div className="page-head"><h1>Scholarships</h1><p>Upload a new scholarship or remove one that has closed.</p></div>
+      <div className="panel">
+        <h2>{editingId ? 'Edit scholarship' : 'Add a new scholarship'}</h2>
+        <form onSubmit={submit}>
+          <div className="form-grid">
+            <div className="form-row"><label>Scholarship Title *</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
+            <div className="form-row"><label>Company / Sponsor *</label><input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} /></div>
+            <div className="form-row"><label>Award Amount (₹) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} /></div>
+            <div className="form-row"><label>Application Fee (₹)</label><input type="number" placeholder="0 = free to apply" value={form.applicationFee} onChange={e => setForm(f => ({ ...f, applicationFee: e.target.value }))} /></div>
+            <div className="form-row">
+              <label>Eligible Class</label>
+              <select value={form.eligibleClass} onChange={e => setForm(f => ({ ...f, eligibleClass: e.target.value }))}>
+                <option value="">Any class (open to everyone)</option>
+                <option value="8th">8th</option>
+                <option value="9th">9th</option>
+                <option value="10th">10th</option>
+                <option value="11th">11th</option>
+                <option value="12th">12th</option>
+                <option value="College - 1st Year">College - 1st Year</option>
+                <option value="9th-12th">9th to 12th</option>
+                <option value="10th-12th">10th to 12th</option>
+              </select>
+              <div className="hint">If set, applicants will only be able to pick a class within this.</div>
+            </div>
+            <div className="form-row">
+              <label>Eligible Gender</label>
+              <select value={form.eligibleGender} onChange={e => setForm(f => ({ ...f, eligibleGender: e.target.value }))}>
+                <option value="">Any gender (open to everyone)</option>
+                <option value="Boy">Boy only</option>
+                <option value="Girl">Girl only</option>
+              </select>
               <div className="hint">If set, applicants will have this gender auto-selected and locked when they apply.</div>
             </div>
             <div className="form-row"><label>Deadline</label><input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} /></div>
@@ -744,7 +853,12 @@ function ScholarshipsTab({ scholarships, onChange }) {
               )}
             </div>
           </div>
-          <div className="btn-row"><button className="btn btn-accent" type="submit" disabled={saving || imgProcessing}>{saving ? 'Uploading…' : imgProcessing ? 'Processing image…' : 'Upload Scholarship'}</button></div>
+          <div className="btn-row">
+            {editingId && <button type="button" className="btn btn-ghost" onClick={cancelEdit} style={{ marginRight: 10 }}>Cancel Edit</button>}
+            <button className="btn btn-accent" type="submit" disabled={saving || imgProcessing}>
+              {saving ? 'Saving…' : imgProcessing ? 'Processing image…' : editingId ? 'Save Changes' : 'Upload Scholarship'}
+            </button>
+          </div>
         </form>
       </div>
       <div className="panel">
@@ -763,7 +877,10 @@ function ScholarshipsTab({ scholarships, onChange }) {
                   <td>{s.eligibleClass ? (s.eligibleClass.includes('-') ? s.eligibleClass.replace('-', ' to ') : s.eligibleClass) : 'Any'}</td>
                   <td>{s.eligibleGender || 'Any'}</td>
                   <td>{s.deadline || '—'}</td>
-                  <td><button className="btn btn-danger" onClick={() => remove(s.id)}>Remove</button></td>
+                  <td>
+                    <button className="btn btn-ghost" onClick={() => startEdit(s)} style={{ marginRight: 6 }}>Edit</button>
+                    <button className="btn btn-danger" onClick={() => remove(s.id)}>Remove</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -772,7 +889,7 @@ function ScholarshipsTab({ scholarships, onChange }) {
       </div>
     </>
   );
-}
+              }
 
 function maskAadhaar(num) {
   if (!num) return num;
