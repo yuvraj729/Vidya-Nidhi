@@ -668,66 +668,7 @@ function ScholarshipsTab({ scholarships, onChange }) {
       };
       img.src = e.target.result;
     };
-    reader.readAsDataURL(file);
-  };
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!form.title || !form.company || !form.price) return;
-    setSaving(true);
-    try {
-      await addScholarship({ ...form, price: Number(form.price), applicationFee: Number(form.applicationFee) || 0 });
-      setForm({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' });
-      onChange();
-    } catch (err) {
-      alert('Could not save this scholarship. Check that Firestore is set up and its rules allow writes. (' + err.message + ')');
-    }
-    setSaving(false);
-  };
-
-  const remove = async (id) => {
-    if (!confirm('Remove this scholarship listing?')) return;
-    try {
-      await deleteScholarship(id);
-      onChange();
-    } catch (err) {
-      alert('Could not remove this scholarship. (' + err.message + ')');
-    }
-  };
-
-  return (
-    <>
-      <div className="page-head"><h1>Scholarships</h1><p>Upload a new scholarship or remove one that has closed.</p></div>
-      <div className="panel">
-        <h2>Add a new scholarship</h2>
-        <form onSubmit={submit}>
-          <div className="form-grid">
-            <div className="form-row"><label>Scholarship Title *</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
-            <div className="form-row"><label>Company / Sponsor *</label><input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} /></div>
-            <div className="form-row"><label>Award Amount (₹) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} /></div>
-            <div className="form-row"><label>Application Fee (₹)</label><input type="number" placeholder="0 = free to apply" value={form.applicationFee} onChange={e => setForm(f => ({ ...f, applicationFee: e.target.value }))} /></div>
-            <div className="form-row">
-              <label>Eligible Class</label>
-              <select value={form.eligibleClass} onChange={e => setForm(f => ({ ...f, eligibleClass: e.target.value }))}>
-                <option value="">Any class (open to everyone)</option>
-                <option value="8th">8th</option>
-                <option value="9th">9th</option>
-                <option value="10th">10th</option>
-                <option value="11th">11th</option>
-                <option value="12th">12th</option>
-                <option value="College - 1st Year">College - 1st Year</option>
-                <option value="9th-12th">9th to 12th</option>
-                <option value="10th-12th">10th to 12th</option>
-              </select>
-              <div className="hint">If set, applicants will only be able to pick a class within this.</div>
-            </div>
-            <div className="form-row">
-              <label>Eligible Gender</label>
-              <select value={form.eligibleGender} onChange={e => setForm(f => ({ ...f, eligibleGender: e.target.value }))}>
-                <option value="">Any gender (open to everyone)</option>
-                <option value="Boy">Boy only</option>
-                <option value="Girl">Girl only</option>
-              </select>
 function ScholarshipsTab({ scholarships, onChange }) {
   const emptyForm = { title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' };
   const [form, setForm] = useState(emptyForm);
