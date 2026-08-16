@@ -22,6 +22,10 @@ export async function deleteScholarship(id) {
   await deleteDoc(doc(db, 'scholarships', id));
 }
 
+export async function updateScholarship(id, scholarship) {
+  await updateDoc(doc(db, 'scholarships', id), scholarship);
+}
+
 // ---------- Applications ----------
 export async function getApplications() {
   const q = query(collection(db, 'applications'), orderBy('submittedAt', 'desc'));
