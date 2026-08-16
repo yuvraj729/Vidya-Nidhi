@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-IN">
   <head>
+    <!-- Basic -->
     <meta charset="UTF-8" />
 
     <meta
@@ -8,7 +9,9 @@
       content="width=device-width, initial-scale=1.0"
     />
 
-    <!-- Primary SEO -->
+    <meta name="theme-color" content="#0b1f3a" />
+
+    <!-- SEO -->
     <title>
       Vidya Nidhi Scholarship Portal | Scholarships for Students in India
     </title>
@@ -28,7 +31,7 @@
       content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     />
 
-    <!-- Canonical -->
+    <!-- Canonical URL -->
     <link
       rel="canonical"
       href="https://vidhyanidhi.in/"
@@ -41,13 +44,17 @@
       href="/logo.png"
     />
 
-    <!-- Theme -->
-    <meta
-      name="theme-color"
-      content="#0b1f3a"
+    <link
+      rel="apple-touch-icon"
+      href="/logo.png"
     />
 
-    <!-- Open Graph -->
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta
+      property="og:type"
+      content="website"
+    />
+
     <meta
       property="og:title"
       content="Vidya Nidhi Scholarship Portal | Scholarships for Students in India"
@@ -55,7 +62,7 @@
 
     <meta
       property="og:description"
-      content="Find scholarships for students in India. Check eligibility, award amounts and application details, then apply online."
+      content="Find scholarships for students in India. Check eligibility, scholarship amounts and application details, then apply online."
     />
 
     <meta
@@ -64,13 +71,13 @@
     />
 
     <meta
-      property="og:type"
-      content="website"
+      property="og:site_name"
+      content="Vidya Nidhi Scholarship Portal"
     />
 
     <meta
-      property="og:site_name"
-      content="Vidya Nidhi Scholarship Portal"
+      property="og:locale"
+      content="en_IN"
     />
 
     <meta
@@ -104,7 +111,10 @@
       content="https://vidhyanidhi.in/logo.png"
     />
 
-    <!-- Organization Schema -->
+    <!-- ========================= -->
+    <!-- ORGANIZATION SCHEMA -->
+    <!-- ========================= -->
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -115,21 +125,51 @@
       }
     </script>
 
-    <!-- Website Schema -->
+    <!-- ========================= -->
+    <!-- WEBSITE SCHEMA -->
+    <!-- ========================= -->
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "Vidya Nidhi Scholarship Portal",
         "url": "https://vidhyanidhi.in/",
-        "description": "Scholarship portal for students in India."
+        "description": "Scholarship portal helping students in India discover scholarship opportunities, eligibility information and application details.",
+        "inLanguage": "en-IN"
       }
     </script>
+
+    <!-- ========================= -->
+    <!-- WEBPAGE SCHEMA -->
+    <!-- ========================= -->
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Vidya Nidhi Scholarship Portal",
+        "url": "https://vidhyanidhi.in/",
+        "description": "Find scholarships for students in India, check eligibility, scholarship amounts and application details.",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "Vidya Nidhi Scholarship Portal",
+          "url": "https://vidhyanidhi.in/"
+        },
+        "about": {
+          "@type": "Thing",
+          "name": "Scholarships for students in India"
+        },
+        "inLanguage": "en-IN"
+      }
+    </script>
+
   </head>
 
   <body>
     <div id="root"></div>
 
+    <!-- React Entry -->
     <script
       type="module"
       src="/src/main.jsx"
