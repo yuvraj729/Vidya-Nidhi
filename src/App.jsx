@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import emailjs from '@emailjs/browser';
 import logo from '../logo.png';
 import {
-  getScholarships, addScholarship, deleteScholarship,
+  getScholarships, addScholarship, deleteScholarship, updateScholarship,
   getApplications, addApplication, updateApplicationStatus, getSettings, saveSettings
 } from './dataStore';
 
