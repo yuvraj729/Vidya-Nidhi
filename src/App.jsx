@@ -6,6 +6,15 @@ import {
   getApplications, addApplication, updateApplicationStatus, getSettings, saveSettings
 } from './dataStore';
 
+const CLASS_ORDER = ['8th', '9th', '10th', '11th', '12th', 'College - 1st Year'];
+
+function getEligibleClasses(eligibleClass) {
+  if (!eligibleClass) return null; // null = any class allowed
+  if (eligibleClass === '9th-12th') return ['9th', '10th', '11th', '12th'];
+  if (eligibleClass === '10th-12th') return ['10th', '11th', '12th'];
+  return [eligibleClass];
+}
+
 function useHashView() {
   const [view, setView] = useState(window.location.hash === '#admin' ? 'admin' : 'portal');
   useEffect(() => {
@@ -321,8 +330,14 @@ function sendConfirmationEmail(app, settings) {
 }
 
 function ApplyModal({ scholarship, settings, onClose }) {
+  const classOptions = getEligibleClasses(scholarship.eligibleClass) || CLASS_ORDER;
+  const classLocked = classOptions.length === 1;
+  const genderLocked = !!scholarship.eligibleGender;
+
   const [form, setForm] = useState({
-    gmail: '', phone: '', state: '', district: '', city: '', institute: '', classYear: scholarship.eligibleClass || '',
+    gmail: '', phone: '', state: '', district: '', city: '', institute: '',
+    classYear: classLocked ? classOptions[0] : '',
+    gender: genderLocked ? scholarship.eligibleGender : '',
     aadharLast4: '', aadharName: '', aadharDob: ''
   });
   const [errors, setErrors] = useState({});
@@ -337,7 +352,7 @@ function ApplyModal({ scholarship, settings, onClose }) {
     if (!/^.+@gmail\.com$/.test(form.gmail)) e.gmail = 'Please enter a valid Gmail address.';
     if (!/^[0-9]{10}$/.test(form.phone)) e.phone = 'Enter a valid 10-digit phone number.';
     if (!/^[0-9]{4}$/.test(form.aadharLast4)) e.aadharLast4 = 'Enter the last 4 digits of your Aadhaar.';
-    ['state', 'district', 'city', 'institute', 'classYear', 'aadharName', 'aadharDob'].forEach(k => {
+    ['state', 'district', 'city', 'institute', 'classYear', 'gender', 'aadharName', 'aadharDob'].forEach(k => {
       if (!form[k]) e[k] = 'Required';
     });
     setErrors(e);
@@ -437,17 +452,22 @@ function ApplyModal({ scholarship, settings, onClose }) {
                 </div>
                 <div className="form-row">
                   <label>Class / Year <span className="req">*</span></label>
-                  <select value={form.classYear} disabled={!!scholarship.eligibleClass} onChange={e => update('classYear', e.target.value)}>
+                  <select value={form.classYear} disabled={classLocked} onChange={e => update('classYear', e.target.value)}>
                     <option value="">Select…</option>
-                    <option value="8th">8th</option>
-                    <option value="9th">9th</option>
-                    <option value="10th">10th</option>
-                    <option value="11th">11th</option>
-                    <option value="12th">12th</option>
-                    <option value="College - 1st Year">College - 1st Year</option>
+                    {classOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  {scholarship.eligibleClass && <div className="hint">This scholarship is only open to {scholarship.eligibleClass} students.</div>}
+                  {scholarship.eligibleClass && <div className="hint">This scholarship is only open to: {classOptions.join(', ')}.</div>}
                   {errors.classYear && <div className="err">{errors.classYear}</div>}
+                </div>
+                <div className="form-row">
+                  <label>Gender <span className="req">*</span></label>
+                  <select value={form.gender} disabled={genderLocked} onChange={e => update('gender', e.target.value)}>
+                    <option value="">Select…</option>
+                    <option value="Boy">Boy</option>
+                    <option value="Girl">Girl</option>
+                  </select>
+                  {genderLocked && <div className="hint">This scholarship is only open to {scholarship.eligibleGender}s.</div>}
+                  {errors.gender && <div className="err">{errors.gender}</div>}
                 </div>
 
                 <div className="divider-label">Aadhaar details</div>
@@ -624,7 +644,7 @@ function AdminPanelInner() {
 }
 
 function ScholarshipsTab({ scholarships, onChange }) {
-  const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '' });
+  const [form, setForm] = useState({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' });
   const [saving, setSaving] = useState(false);
   const [imgProcessing, setImgProcessing] = useState(false);
 
@@ -657,7 +677,7 @@ function ScholarshipsTab({ scholarships, onChange }) {
     setSaving(true);
     try {
       await addScholarship({ ...form, price: Number(form.price), applicationFee: Number(form.applicationFee) || 0 });
-      setForm({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '' });
+      setForm({ title: '', company: '', price: '', applicationFee: '', deadline: '', description: '', imageUrl: '', eligibleClass: '', eligibleGender: '' });
       onChange();
     } catch (err) {
       alert('Could not save this scholarship. Check that Firestore is set up and its rules allow writes. (' + err.message + ')');
@@ -696,8 +716,19 @@ function ScholarshipsTab({ scholarships, onChange }) {
                 <option value="11th">11th</option>
                 <option value="12th">12th</option>
                 <option value="College - 1st Year">College - 1st Year</option>
+                <option value="9th-12th">9th to 12th</option>
+                <option value="10th-12th">10th to 12th</option>
               </select>
-              <div className="hint">If set, applicants will have this class auto-selected and locked when they apply.</div>
+              <div className="hint">If set, applicants will only be able to pick a class within this.</div>
+            </div>
+            <div className="form-row">
+              <label>Eligible Gender</label>
+              <select value={form.eligibleGender} onChange={e => setForm(f => ({ ...f, eligibleGender: e.target.value }))}>
+                <option value="">Any gender (open to everyone)</option>
+                <option value="Boy">Boy only</option>
+                <option value="Girl">Girl only</option>
+              </select>
+              <div className="hint">If set, applicants will have this gender auto-selected and locked when they apply.</div>
             </div>
             <div className="form-row"><label>Deadline</label><input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} /></div>
             <div className="form-row full"><label>Description</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
@@ -720,16 +751,17 @@ function ScholarshipsTab({ scholarships, onChange }) {
         <h2>Live listings</h2>
         <div className="scroll-x">
           <table>
-            <thead><tr><th>Title</th><th>Company</th><th>Amount</th><th>Fee</th><th>Class</th><th>Deadline</th><th></th></tr></thead>
+            <thead><tr><th>Title</th><th>Company</th><th>Amount</th><th>Fee</th><th>Class</th><th>Gender</th><th>Deadline</th><th></th></tr></thead>
             <tbody>
-              {scholarships.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)' }}>No scholarships uploaded yet.</td></tr>}
+              {scholarships.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted)' }}>No scholarships uploaded yet.</td></tr>}
               {scholarships.map(s => (
                 <tr key={s.id}>
                   <td><strong>{s.title}</strong></td>
                   <td><span className="co-tag">{s.company}</span></td>
                   <td className="price">₹{Number(s.price).toLocaleString('en-IN')}</td>
                   <td>₹{Number(s.applicationFee || 0).toLocaleString('en-IN')}</td>
-                  <td>{s.eligibleClass || 'Any'}</td>
+                  <td>{s.eligibleClass ? (s.eligibleClass.includes('-') ? s.eligibleClass.replace('-', ' to ') : s.eligibleClass) : 'Any'}</td>
+                  <td>{s.eligibleGender || 'Any'}</td>
                   <td>{s.deadline || '—'}</td>
                   <td><button className="btn btn-danger" onClick={() => remove(s.id)}>Remove</button></td>
                 </tr>
@@ -766,12 +798,12 @@ function ApplicationsTab({ applications }) {
             <thead>
               <tr>
                 <th>Ref</th><th>Payment</th><th>Scholarship</th><th>Gmail</th><th>Phone</th><th>State</th>
-                <th>District</th><th>City</th><th>School/College</th><th>Class/Year</th><th>Aadhaar No.</th>
+                <th>District</th><th>City</th><th>School/College</th><th>Class/Year</th><th>Gender</th><th>Aadhaar No.</th>
                 <th>Aadhaar Name</th><th>Aadhaar DOB</th>
               </tr>
             </thead>
             <tbody>
-              {applications.length === 0 && <tr><td colSpan={13} style={{ textAlign: 'center', color: 'var(--muted)' }}>No applications yet.</td></tr>}
+              {applications.length === 0 && <tr><td colSpan={14} style={{ textAlign: 'center', color: 'var(--muted)' }}>No applications yet.</td></tr>}
               {applications.map(a => (
                 <tr key={a.id}>
                   <td><span className="refid">{a.id}</span></td>
@@ -784,6 +816,7 @@ function ApplicationsTab({ applications }) {
                   <td>{a.city}</td>
                   <td>{a.institute}</td>
                   <td>{a.classYear}</td>
+                  <td>{a.gender}</td>
                   <td className="mono">{maskAadhaar(a.aadharNumber)}</td>
                   <td>{a.aadharName}</td>
                   <td>{a.aadharDob}</td>
