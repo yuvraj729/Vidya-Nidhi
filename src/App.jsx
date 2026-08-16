@@ -128,7 +128,42 @@ function StudentPortal() {
       }
     };
   }, []);
+  // Scholarship List Schema
+  useEffect(() => {
+    if (!scholarships || scholarships.length === 0) return;
 
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Latest Scholarships for Students in India",
+      "description": "Scholarship opportunities for school and college students in India.",
+      "itemListElement": scholarships.map((s, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": s.title,
+        "description": s.description || "",
+        "url": "https://vidhyanidhi.in/"
+      }))
+    };
+
+    let script = document.getElementById("scholarship-list-schema");
+
+    if (!script) {
+      script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.id = "scholarship-list-schema";
+      document.head.appendChild(script);
+    }
+
+    script.textContent = JSON.stringify(schema);
+
+    return () => {
+      const existingScript = document.getElementById("scholarship-list-schema");
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, [scholarships]);
   return (
     <>
       <header className="top">
@@ -143,8 +178,14 @@ function StudentPortal() {
 
       <div className="hero">
         <div className="eyebrow" style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Find Scholarships for Students in India</div>
-        <h1>Vidya Nidhi Scholarship Portal</h1>
-        <p>Discover scholarship opportunities for students in India. Browse available scholarships, check eligibility, award amounts and application details, then apply online.</p>
+        <h1>
+  Vidya Nidhi Scholarship Portal – Scholarships for Students in India
+</h1>
+        <p>
+  Find scholarships for school and college students in India.
+  Check scholarship eligibility, award amounts, application deadlines
+  and application details on Vidya Nidhi.
+</p>
       </div>
 
       <main>
